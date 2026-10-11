@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplikasi Web Absensi Digital Karyawan</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome 6 CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col justify-between">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col space-y-3 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <!-- SCREEN 1: LOGIN SECTION -->
+  <div id="login-screen" class="min-h-screen flex items-center justify-center p-4 bg-cover bg-center transition-all duration-500 fixed inset-0 z-50" style="background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1920&q=80');">
+    <!-- Overlay dibuat lebih transparan tanpa efek blur agar background jelas -->
+    <div class="absolute inset-0 bg-slate-900/40"></div>
+    
+    <div class="bg-white/95 rounded-3xl shadow-2xl p-8 w-full max-w-md border border-white/20 relative z-10">
+      <div class="text-center mb-6">
+        <div class="inline-flex bg-indigo-600 text-white p-4 rounded-2xl mb-3 shadow-lg shadow-indigo-200">
+          <i class="fa-solid fa-user-lock text-3xl"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-800">Login Digital Absensi</h2>
+        <p class="text-xs text-slate-500 mt-1">Silakan masuk dengan akun karyawan / admin</p>
+      </div>
+
+      <!-- Alert Login Error -->
+      <div id="login-alert" class="hidden mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center space-x-2">
+        <i class="fa-solid fa-circle-exclamation text-rose-500"></i>
+        <span id="login-alert-msg"></span>
+      </div>
+
+      <form id="form-login" onsubmit="handleLoginSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">ID User / Username</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+              <i class="fa-solid fa-user"></i>
+            </span>
+            <input type="text" id="login-id" required placeholder="Masukkan ID atau admin" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+              <i class="fa-solid fa-key"></i>
+            </span>
+            <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <button type="submit" id="btn-login" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg transition-all text-sm flex justify-center items-center">
+          <i class="fa-solid fa-right-to-bracket mr-2"></i> Masuk Sekarang
+        </button>
+      </form>
+
+      <div class="mt-6 text-center text-[11px] text-slate-400 border-t border-slate-100 pt-4">
+        Default User:  <span class="font-mono text-slate-600 font-bold">NIP</span> | Pass <span class="font-mono text-slate-600 font-bold">Password</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: MAIN APP SECTION -->
+  <div id="app-screen" class="hidden min-h-screen flex flex-col justify-between">
+    <!-- Header / Navigation -->
+    <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-40">
+      <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+        <div class="flex items-center space-x-3">
+          <div class="bg-white/20 p-2.5 rounded-xl backdrop-blur-sm">
+            <i class="fa-solid fa-clipboard-user text-2xl text-white"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-lg leading-tight">Absensi Digital Karyawan</h1>
+            <p class="text-xs text-indigo-200">Sistem Checklist & Pelaporan Realtime</p>
+          </div>
+        </div>
+        
+        <!-- User Info & Nav Tabs -->
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Button Copy Web App Link Header -->
+          <button onclick="copyAppUrl()" title="Salin URL Web App untuk dibuka langsung di browser" class="bg-indigo-800/80 hover:bg-indigo-800 text-indigo-100 text-xs px-3 py-1.5 rounded-xl border border-indigo-500/40 transition flex items-center space-x-1.5">
+            <i class="fa-solid fa-link text-indigo-300"></i>
+            <span class="hidden sm:inline">Salin URL Web</span>
+          </button>
+
+          <nav class="flex space-x-1 bg-indigo-800/60 p-1 rounded-xl">
+            <button onclick="switchTab('tab-absensi')" id="btn-tab-absensi" class="nav-btn px-3 py-1.5 text-xs font-medium rounded-lg bg-white text-indigo-800 shadow transition-all">
+              <i class="fa-solid fa-user-check mr-1"></i> Absensi
+            </button>
+            <button onclick="switchTab('tab-rekap')" id="btn-tab-rekap" class="nav-btn px-3 py-1.5 text-xs font-medium rounded-lg text-indigo-100 hover:text-white transition-all">
+              <i class="fa-solid fa-file-lines mr-1"></i> Rekap Kehadiran
+            </button>
+            <!-- TAB ADMIN: KHUSUS ROLE ADMIN -->
+            <button onclick="switchTab('tab-admin')" id="btn-tab-admin" class="nav-btn hidden px-3 py-1.5 text-xs font-medium rounded-lg text-indigo-100 hover:text-white transition-all">
+              <i class="fa-solid fa-user-gear mr-1"></i> Admin Panel
+            </button>
+          </nav>
+
+          <!-- Profile Badge, Ubah Password & Logout -->
+          <div class="flex items-center space-x-2 bg-indigo-900/50 px-3 py-1.5 rounded-xl border border-indigo-500/30">
+            <div class="text-right">
+              <div id="user-display-name" class="text-xs font-bold leading-tight">Nama User</div>
+              <span id="user-display-role" class="inline-block bg-indigo-500 text-white font-semibold text-[10px] px-1.5 rounded">Role</span>
+            </div>
+
+            <!-- Tombol Ubah Password -->
+            <button onclick="openModalUbahPassword()" title="Ubah Password" class="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1.5 rounded-lg transition-all text-xs flex items-center space-x-1">
+              <i class="fa-solid fa-key"></i>
+              <span class="hidden md:inline text-[11px] font-medium">Ubah Pass</span>
+            </button>
+
+            <!-- Tombol Logout -->
+            <button onclick="handleLogout()" title="Keluar" class="bg-rose-500 hover:bg-rose-600 text-white p-2 rounded-lg transition-all text-xs">
+              <i class="fa-solid fa-power-off"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full">
+      
+      <!-- TAB 1: FORM ABSENSI -->
+      <div id="tab-absensi" class="tab-content">
+        <div class="max-w-xl mx-auto bg-white rounded-3xl shadow-sm border border-slate-200 p-6 md:p-8">
+          
+          <!-- Jam & Tanggal Digital -->
+          <div class="bg-slate-900 text-white rounded-2xl p-4 text-center mb-6 shadow-inner">
+            <div id="clock-time" class="text-3xl font-extrabold tracking-wider font-mono text-indigo-400">00:00:00</div>
+            <div id="clock-date" class="text-xs text-slate-300 font-medium mt-1">Hari, 00 Bulan 202X</div>
+            
+            <div class="mt-3 flex flex-col sm:flex-row justify-center gap-2 text-[11px]">
+              <div class="bg-indigo-900/80 text-indigo-200 px-3 py-1 rounded-full border border-indigo-700/50">
+                <i class="fa-solid fa-clock mr-1"></i> Senin-Kamis: <b>08:00 - 15:30 WIB</b>
+              </div>
+              <div class="bg-indigo-900/80 text-indigo-200 px-3 py-1 rounded-full border border-indigo-700/50">
+                <i class="fa-solid fa-clock mr-1"></i> Jumat: <b>08:00 - 14:00 WIB</b>
+              </div>
+            </div>
+            <div class="mt-2 text-[10px] text-amber-300 font-medium">
+              <i class="fa-solid fa-triangle-exclamation mr-1"></i> Status Terlambat jika absen ≥ <b>08:15 WIB</b>
+            </div>
+          </div>
+
+          <!-- Form Absensi Utama -->
+          <form id="form-absensi" onsubmit="handleAbsensiSubmit(event)" class="space-y-5">
+            
+            <!-- User Info Card -->
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center space-x-3">
+              <div class="bg-indigo-100 text-indigo-600 p-2.5 rounded-xl">
+                <i class="fa-solid fa-id-card text-lg"></i>
+              </div>
+              <div class="overflow-hidden">
+                <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Identitas Pengguna</div>
+                <div id="absen-user-info" class="text-xs font-bold text-slate-800 truncate">Nama User (ID) - Jabatan</div>
+              </div>
+            </div>
+
+            <!-- Status Kehadiran Radio Buttons -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-2">Pilih Status Kehadiran</label>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="relative flex items-center justify-center p-3 border-2 border-indigo-600 bg-indigo-50/50 rounded-2xl cursor-pointer hover:bg-indigo-50 transition-all text-center">
+                  <input type="radio" name="status-hadir" value="Hadir" checked onchange="handleStatusChange()" class="sr-only peer">
+                  <div class="peer-checked:font-bold text-xs text-indigo-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-circle-check text-indigo-600 text-base"></i>
+                    <span>Hadir Bekerja</span>
+                  </div>
+                </label>
+
+                <label class="relative flex items-center justify-center p-3 border-2 border-slate-200 rounded-2xl cursor-pointer hover:bg-slate-50 transition-all text-center">
+                  <input type="radio" name="status-hadir" value="Sakit" onchange="handleStatusChange()" class="sr-only peer">
+                  <div class="peer-checked:font-bold text-xs text-slate-700 flex items-center space-x-2">
+                    <i class="fa-solid fa-notes-medical text-rose-500 text-base"></i>
+                    <span>Sakit (Izin)</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Upload PDF Surat Dokter (Hanya muncul jika Sakit) -->
+            <div id="section-pdf-upload" class="hidden space-y-2 bg-rose-50/60 border border-rose-200 rounded-2xl p-4">
+              <label class="block text-xs font-semibold text-rose-900 flex items-center">
+                <i class="fa-solid fa-file-pdf text-rose-600 mr-1.5 text-sm"></i> Upload Surat Dokter (PDF) <span class="text-rose-500 ml-1">*Wajib</span>
+              </label>
+              <input type="file" id="absen-pdf" accept="application/pdf" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-rose-600 file:text-white hover:file:bg-rose-700 border border-slate-300 rounded-xl bg-white p-1 focus:outline-none">
+              <p class="text-[10px] text-rose-600">Unggah berkas resmi Surat Keterangan Dokter berformat PDF.</p>
+            </div>
+
+            <!-- Checklist Pekerjaan / Catatan -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Checklist Pekerjaan / Catatan Harian</label>
+              <textarea id="absen-catatan" rows="3" placeholder="Tuliskan checklist tugas utama atau catatan hari ini..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none custom-scrollbar"></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="btn-submit-absen" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-indigo-200 transition-all text-sm flex justify-center items-center">
+              <i class="fa-solid fa-paper-plane mr-2"></i> Kirim Absensi
+            </button>
+          </form>
+
+        </div>
+      </div>
+
+      <!-- TAB 2: ADMIN PANEL (KHUSUS ADMIN) -->
+      <div id="tab-admin" class="tab-content hidden space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          <!-- Form Tambah Karyawan -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:col-span-1 h-fit">
+            <div class="border-b border-slate-100 pb-3 mb-4">
+              <h3 class="text-md font-bold text-slate-800"><i class="fa-solid fa-user-plus text-indigo-600 mr-2"></i>Tambah Pengguna Baru</h3>
+              <p class="text-xs text-slate-500">Buatkan akun & password untuk karyawan baru.</p>
+            </div>
+
+            <form id="form-tambah-karyawan" onsubmit="handleTambahKaryawan(event)" class="space-y-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">ID / Username</label>
+                <input type="text" id="admin-id" required placeholder="Contoh: K-001 / budi" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap</label>
+                <input type="text" id="admin-nama" required placeholder="Contoh: Budi Santoso" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Jabatan / Divisi</label>
+                <input type="text" id="admin-jabatan" required placeholder="Contoh: IT Support" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Password Akses</label>
+                <input type="text" id="admin-password" required placeholder="Default: 123456" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Peran / Role</label>
+                <select id="admin-role" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                  <option value="Karyawan">Karyawan</option>
+                  <option value="Admin">Admin</option>
+                </select>
+              </div>
+
+              <button type="submit" id="btn-submit-admin" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-xl shadow transition-all text-sm flex justify-center items-center mt-2">
+                <i class="fa-solid fa-plus mr-2"></i> Simpan Pengguna
+              </button>
+            </form>
+          </div>
+
+          <!-- Tabel Daftar Karyawan -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:col-span-2">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+              <h3 class="text-md font-bold text-slate-800"><i class="fa-solid fa-users text-indigo-600 mr-2"></i>Daftar Pengguna Terdaftar</h3>
+              <button onclick="loadKaryawanData()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3 py-1.5 rounded-lg transition">
+                <i class="fa-solid fa-rotate mr-1"></i> Refresh
+              </button>
+            </div>
+
+            <div class="overflow-x-auto custom-scrollbar">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                    <th class="p-3">ID / User</th>
+                    <th class="p-3">Nama Lengkap</th>
+                    <th class="p-3">Jabatan</th>
+                    <th class="p-3">Role</th>
+                  </tr>
+                </thead>
+                <tbody id="table-karyawan-body">
+                  <tr><td colspan="4" class="p-4 text-center text-slate-400">Memuat data...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANEL MERUBAH BACKGROUND LOGIN -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <div class="border-b border-slate-100 pb-3 mb-4">
+            <h3 class="text-md font-bold text-slate-800"><i class="fa-solid fa-image text-indigo-600 mr-2"></i>Ubah Background Menu Login</h3>
+            <p class="text-xs text-slate-500">Unggah foto dari perangkat Anda atau pilih preset gambar corporate.</p>
+          </div>
+
+          <form onsubmit="handleSaveBg(event)" class="space-y-4">
+            <!-- Pilihan 1: Upload File Gambar dari Perangkat -->
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+              <label class="block text-xs font-semibold text-slate-800 flex items-center">
+                <i class="fa-solid fa-file-arrow-up text-indigo-600 mr-1.5 text-sm"></i> Upload Gambar dari Perangkat (Komputer / HP)
+              </label>
+              <input type="file" id="input-bg-file" accept="image/png, image/jpeg, image/jpg, image/webp" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 border border-slate-300 rounded-xl bg-white p-1 focus:outline-none">
+              <p class="text-[10px] text-slate-400">Format yang didukung: JPG, PNG, WEBP (Otomatis tersimpan ke Google Drive Anda).</p>
+            </div>
+
+            <!-- Pilihan 2: Menggunakan URL Gambar -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Atau Gunakan URL Gambar (HTTPS)</label>
+              <input type="url" id="input-bg-url" placeholder="https://images.unsplash.com/photo-..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+
+            <div>
+              <span class="block text-xs font-semibold text-slate-700 mb-2">Atau Pilih Preset Gambar Corporate:</span>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <button type="button" onclick="setBgPreset('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1920&q=80')" class="group relative rounded-xl overflow-hidden border-2 border-transparent hover:border-indigo-600 focus:border-indigo-600 h-16 bg-slate-100">
+                  <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=300&q=80" alt="Modern Office" class="w-full h-full object-cover">
+                  <span class="absolute inset-0 bg-black/40 text-white text-[10px] font-bold flex items-center justify-center">Modern Office</span>
+                </button>
+                <button type="button" onclick="setBgPreset('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1920&q=80')" class="group relative rounded-xl overflow-hidden border-2 border-transparent hover:border-indigo-600 focus:border-indigo-600 h-16 bg-slate-100">
+                  <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=300&q=80" alt="Skyscraper" class="w-full h-full object-cover">
+                  <span class="absolute inset-0 bg-black/40 text-white text-[10px] font-bold flex items-center justify-center">Skyscraper</span>
+                </button>
+                <button type="button" onclick="setBgPreset('https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1920&q=80')" class="group relative rounded-xl overflow-hidden border-2 border-transparent hover:border-indigo-600 focus:border-indigo-600 h-16 bg-slate-100">
+                  <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=300&q=80" alt="Teamwork" class="w-full h-full object-cover">
+                  <span class="absolute inset-0 bg-black/40 text-white text-[10px] font-bold flex items-center justify-center">Teamwork</span>
+                </button>
+                <button type="button" onclick="setBgPreset('https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1920&q=80')" class="group relative rounded-xl overflow-hidden border-2 border-transparent hover:border-indigo-600 focus:border-indigo-600 h-16 bg-slate-100">
+                  <img src="https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=300&q=80" alt="Minimalist Desk" class="w-full h-full object-cover">
+                  <span class="absolute inset-0 bg-black/40 text-white text-[10px] font-bold flex items-center justify-center">Minimalist Desk</span>
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" id="btn-save-bg" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs transition flex items-center">
+              <i class="fa-solid fa-cloud-arrow-up mr-2"></i> Simpan & Terapkan Background
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- TAB 3: REKAP ABSENSI & RANGKUMAN STATISTIK -->
+      <div id="tab-rekap" class="tab-content hidden space-y-6">
+        
+        <!-- RINGKASAN STATISTIK PER KARYAWAN -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <div class="flex flex-wrap justify-between items-center border-b border-slate-100 pb-3 mb-4 gap-2">
+            <div>
+              <h3 class="text-md font-bold text-slate-800"><i class="fa-solid fa-chart-pie text-indigo-600 mr-2"></i>Rekapan Kehadiran Setiap Karyawan</h3>
+              <p class="text-xs text-slate-500">Rangkuman akumulasi kehadiran, keterlambatan, dan sakit per karyawan.</p>
+            </div>
+            <button onclick="loadRekapSummary()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3 py-1.5 rounded-lg transition">
+              <i class="fa-solid fa-arrows-rotate mr-1"></i> Refresh Summary
+            </button>
+          </div>
+
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-xs border-collapse min-w-[650px]">
+              <thead>
+                <tr class="bg-indigo-50 text-indigo-900 border-b border-indigo-100">
+                  <th class="p-3">ID Karyawan</th>
+                  <th class="p-3">Nama Karyawan</th>
+                  <th class="p-3">Jabatan</th>
+                  <th class="p-3 text-center">Total Hadir</th>
+                  <th class="p-3 text-center">Tepat Waktu</th>
+                  <th class="p-3 text-center">Terlambat</th>
+                  <th class="p-3 text-center">Sakit / Izin</th>
+                  <th class="p-3">Terakhir Absen</th>
+                </tr>
+              </thead>
+              <tbody id="table-summary-body">
+                <tr><td colspan="8" class="p-4 text-center text-slate-400">Memuat rangkuman...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- LOG LAPORAN RIWAYAT DETAIL ABSENSI -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+          <div class="flex flex-wrap justify-between items-center border-b border-slate-100 pb-4 mb-4 gap-2">
+            <div>
+              <h3 class="text-md font-bold text-slate-800"><i class="fa-solid fa-list-check text-indigo-600 mr-2"></i>Log Riwayat Absensi Realtime</h3>
+              <p class="text-xs text-slate-500">Rincian seluruh transaksi absensi dari Google Sheets.</p>
+            </div>
+            <button onclick="loadRekapData()" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3 py-2 rounded-xl border border-indigo-200 transition flex items-center">
+              <i class="fa-solid fa-arrows-rotate mr-1.5"></i> Perbarui Data
+            </button>
+          </div>
+
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-xs border-collapse min-w-[700px]">
+              <thead>
+                <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                  <th class="p-3">Waktu Input</th>
+                  <th class="p-3">Karyawan</th>
+                  <th class="p-3">Hari & Tanggal</th>
+                  <th class="p-3">Jam Masuk</th>
+                  <th class="p-3">Status</th>
+                  <th class="p-3">Waktu</th>
+                  <th class="p-3">Catatan</th>
+                  <th class="p-3">Surat Dokter</th>
+                </tr>
+              </thead>
+              <tbody id="table-rekap-body">
+                <tr><td colspan="8" class="p-4 text-center text-slate-400">Memuat rekap data...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- MODAL UBAH PASSWORD -->
+    <div id="modal-ubah-password" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full p-6 relative">
+        <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+          <h3 class="font-bold text-slate-800 text-base flex items-center">
+            <i class="fa-solid fa-key text-amber-500 mr-2"></i> Ubah Password Saya
+          </h3>
+          <button onclick="closeModalUbahPassword()" class="text-slate-400 hover:text-slate-600 text-lg">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form onsubmit="handleUbahPasswordSubmit(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Password Saat Ini (Lama)</label>
+            <input type="password" id="pw-lama" required placeholder="Masukkan password lama" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Password Baru</label>
+            <input type="password" id="pw-baru" required placeholder="Masukkan password baru" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Konfirmasi Password Baru</label>
+            <input type="password" id="pw-konfirmasi" required placeholder="Ulangi password baru" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+
+          <div class="flex justify-end space-x-2 pt-2">
+            <button type="button" onclick="closeModalUbahPassword()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">Batal</button>
+            <button type="submit" id="btn-submit-pw" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-xl shadow transition flex items-center">
+              <i class="fa-solid fa-floppy-disk mr-1.5"></i> Simpan Password
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-slate-400 text-xs flex flex-col sm:flex-row justify-between items-center max-w-6xl mx-auto px-4 w-full gap-2">
+      <p>&copy; 2026 Sistem Absensi Digital Karyawan. Hak Cipta Dilindungi.</p>
+      <button onclick="copyAppUrl()" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center space-x-1 text-xs">
+        <i class="fa-solid fa-share-nodes"></i>
+        <span>Bagikan / Salin Link Aplikasi Web</span>
+      </button>
+    </footer>
+  </div>
+
+  <!-- JavaScript Logic & Unified API Bridge -->
+  <script>
+    // ISI DENGAN URL WEB APP GOOGLE APPS SCRIPT ANDA JIKA INGIN DI-HOST DI OUTSIDE DOMAIN
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwYKNPWDQhgoMwz2Dy35GBew696zXgvlAN6FiNsHRrBemGqMrwFXujo8MKtmirg3LXy/exec";
+
+    let loggedInUser = null;
+
+    document.addEventListener("DOMContentLoaded", function() {
+      startClock();
+      loadSettings();
+      checkSession();
+    });
+
+    // UNIFIED API BRIDGE CALLER
+    async function callBackend(action, params = {}) {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        return new Promise((resolve, reject) => {
+          let runner = google.script.run
+            .withSuccessHandler(res => resolve(res))
+            .withFailureHandler(err => reject(err));
+          
+          if (action === 'loginUser') runner.loginUser(params.username, params.password);
+          else if (action === 'ubahPassword') runner.ubahPassword(params.username, params.oldPassword, params.newPassword);
+          else if (action === 'simpanAbsensi') runner.simpanAbsensi(params.payload || params);
+          else if (action === 'tambahKaryawan') runner.tambahKaryawan(params.id, params.nama, params.jabatan, params.password, params.role);
+          else if (action === 'getDaftarKaryawan') runner.getDaftarKaryawan();
+          else if (action === 'getRekapAbsensi') runner.getRekapAbsensi();
+          else if (action === 'getRekapPerKaryawan') runner.getRekapPerKaryawan();
+          else if (action === 'getSettings') runner.getSettings();
+          else if (action === 'simpanSettings') runner.simpanSettings(params.bgUrl);
+          else if (action === 'uploadBgImage') runner.uploadBgImage(params.fileBase64, params.fileName);
+          else reject(new Error("Aksi tidak dikenal"));
+        });
+      }
+
+      if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.trim() !== "") {
+        try {
+          const response = await fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ action: action, ...params })
+          });
+          const data = await response.json();
+          return data;
+        } catch (error) {
+          throw new Error("Gagal terhubung ke GOOGLE_SCRIPT_URL: " + error.message);
+        }
+      }
+
+      // Fallback Simulasi jika diakses di luar Apps Script/tanpa backend aktif
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          if (action === 'uploadBgImage') {
+            resolve({ success: true, message: 'Simulasi: Gambar background berhasil diunggah!', bgUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1920&q=80' });
+          } else if (action === 'loginUser') {
+            if (params.username.toLowerCase() === 'admin' && params.password === 'admin123') {
+              resolve({ success: true, message: 'Login Admin berhasil!', user: { id: 'admin', nama: 'Administrator Utama', jabatan: 'Admin System', role: 'Admin' } });
+            } else if (params.username && params.password) {
+              resolve({ success: true, message: 'Login Karyawan berhasil!', user: { id: params.username, nama: params.username, jabatan: 'Staff Karyawan', role: 'Karyawan' } });
+            } else {
+              resolve({ success: false, message: 'ID User atau Password salah!' });
+            }
+          } else if (action === 'ubahPassword') {
+            resolve({ success: true, message: 'Simulasi: Password berhasil diperbarui!' });
+          } else if (action === 'simpanAbsensi') {
+            resolve({ success: true, message: 'Simulasi: Absensi ' + (params.payload ? params.payload.status : params.status) + ' berhasil dicatat!' });
+          } else if (action === 'tambahKaryawan') {
+            resolve({ success: true, message: 'Simulasi: Pengguna ' + params.nama + ' berhasil ditambahkan!' });
+          } else if (action === 'getDaftarKaryawan') {
+            resolve([
+              { id: 'admin', nama: 'Administrator Utama', jabatan: 'Admin System', role: 'Admin' },
+              { id: 'K-001', nama: 'Budi Santoso', jabatan: 'Staff IT', role: 'Karyawan' }
+            ]);
+          } else if (action === 'getRekapAbsensi') {
+            resolve([
+              { timestamp: '2026-10-11 08:02', id: 'K-001', nama: 'Budi Santoso', hari: 'Minggu', tanggal: '2026-10-11', jam: '08:02:15', status: 'Hadir', statusWaktu: 'Tepat Waktu', catatan: 'Mengerjakan perbaikan server database.', linkPdf: '-' }
+            ]);
+          } else if (action === 'getRekapPerKaryawan') {
+            resolve([
+              { id: 'admin', nama: 'Administrator Utama', jabatan: 'Admin System', totalHadir: 10, tepatWaktu: 9, terlambat: 1, sakit: 0, terakhirAbsen: '2026-10-11 07:55' },
+              { id: 'K-001', nama: 'Budi Santoso', jabatan: 'Staff IT', totalHadir: 8, tepatWaktu: 7, terlambat: 1, sakit: 1, terakhirAbsen: '2026-10-11 08:02' }
+            ]);
+          } else if (action === 'getSettings') {
+            resolve({ login_bg_url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1920&q=80' });
+          } else if (action === 'simpanSettings') {
+            resolve({ success: true, message: 'Simulasi: Background login berhasil disimpan!' });
+          } else {
+            resolve({ success: false, message: 'Simulasi: Aksi tidak dikenal' });
+          }
+        }, 400);
+      });
+    }
+
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+      const username = document.getElementById('login-id').value.trim();
+      const password = document.getElementById('login-password').value;
+      const alertEl = document.getElementById('login-alert');
+      const alertMsg = document.getElementById('login-alert-msg');
+      const btn = document.getElementById('btn-login');
+
+      alertEl.classList.add('hidden');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Memeriksa...';
+
+      try {
+        const res = await callBackend('loginUser', { username, password });
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-2"></i> Masuk Sekarang';
+
+        if (res && res.success && res.user) {
+          loggedInUser = res.user;
+          sessionStorage.setItem('absensi_user', JSON.stringify(loggedInUser));
+          initUserSession();
+          showAlert(res.message || 'Login Berhasil!', 'success');
+        } else {
+          alertMsg.innerText = res.message || 'ID User atau Password salah!';
+          alertEl.classList.remove('hidden');
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-2"></i> Masuk Sekarang';
+        alertMsg.innerText = 'Terjadi kesalahan koneksi: ' + (err.message || err.toString());
+        alertEl.classList.remove('hidden');
+      }
+    }
+
+    // Ubah Password Handlers
+    function openModalUbahPassword() {
+      document.getElementById('modal-ubah-password').classList.remove('hidden');
+    }
+
+    function closeModalUbahPassword() {
+      document.getElementById('modal-ubah-password').classList.add('hidden');
+      document.getElementById('pw-lama').value = '';
+      document.getElementById('pw-baru').value = '';
+      document.getElementById('pw-konfirmasi').value = '';
+    }
+
+    async function handleUbahPasswordSubmit(e) {
+      e.preventDefault();
+      if (!loggedInUser) return;
+
+      const oldPassword = document.getElementById('pw-lama').value;
+      const newPassword = document.getElementById('pw-baru').value;
+      const confirmPassword = document.getElementById('pw-konfirmasi').value;
+      const btn = document.getElementById('btn-submit-pw');
+
+      if (newPassword !== confirmPassword) {
+        showAlert('Konfirmasi password baru tidak cocok!', 'error');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Memproses...';
+
+      try {
+        const res = await callBackend('ubahPassword', {
+          username: loggedInUser.id,
+          oldPassword: oldPassword,
+          newPassword: newPassword
+        });
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk mr-1.5"></i> Simpan Password';
+
+        if (res && res.success) {
+          showAlert(res.message, 'success');
+          closeModalUbahPassword();
+        } else {
+          showAlert(res.message || 'Gagal mengubah password', 'error');
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk mr-1.5"></i> Simpan Password';
+        handleError(err);
+      }
+    }
+
+    function checkSession() {
+      const savedUser = sessionStorage.getItem("absensi_user");
+      if (savedUser) {
+        try {
+          loggedInUser = JSON.parse(savedUser);
+          initUserSession();
+        } catch(e) {
+          showLoginScreen();
+        }
+      } else {
+        showLoginScreen();
+      }
+    }
+
+    function showLoginScreen() {
+      document.getElementById('login-screen').classList.remove('hidden');
+      document.getElementById('app-screen').classList.add('hidden');
+    }
+
+    function initUserSession() {
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app-screen').classList.remove('hidden');
+
+      document.getElementById('user-display-name').innerText = loggedInUser.nama;
+      document.getElementById('user-display-role').innerText = loggedInUser.role;
+
+      document.getElementById('absen-user-info').innerText = `${loggedInUser.nama} (${loggedInUser.id}) - ${loggedInUser.jabatan}`;
+
+      const btnAdmin = document.getElementById('btn-tab-admin');
+      if (loggedInUser && loggedInUser.role === 'Admin') {
+        btnAdmin.classList.remove('hidden');
+      } else {
+        btnAdmin.classList.add('hidden');
+      }
+
+      switchTab('tab-absensi');
+    }
+
+    function handleLogout() {
+      sessionStorage.removeItem("absensi_user");
+      loggedInUser = null;
+      showLoginScreen();
+    }
+
+    function copyAppUrl() {
+      const url = window.location.href;
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(url).then(() => {
+          showAlert('URL Aplikasi Web berhasil disalin!', 'success');
+        }).catch(() => {
+          fallbackCopyText(url);
+        });
+      } else {
+        fallbackCopyText(url);
+      }
+    }
+
+    function fallbackCopyText(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showAlert('URL Aplikasi Web berhasil disalin!', 'success');
+      } catch (err) {
+        showAlert('Silakan salin manual dari address bar browser.', 'info');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    function startClock() {
+      const update = () => {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        
+        const hariArr = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+        const bulanArr = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        
+        const hari = hariArr[now.getDay()];
+        const tgl = now.getDate();
+        const bulan = bulanArr[now.getMonth()];
+        const tahun = now.getFullYear();
+
+        const timeEl = document.getElementById('clock-time');
+        const dateEl = document.getElementById('clock-date');
+        
+        if (timeEl) timeEl.innerText = `${hours}:${minutes}:${seconds}`;
+        if (dateEl) dateEl.innerText = `${hari}, ${tgl} ${bulan} ${tahun}`;
+      };
+      update();
+      setInterval(update, 1000);
+    }
+
+    async function loadSettings() {
+      try {
+        const res = await callBackend('getSettings');
+        const settings = res.data || res;
+        if (settings && settings.login_bg_url) {
+          applyBgImage(settings.login_bg_url);
+        }
+      } catch (e) {
+        console.warn("Gagal memuat pengaturan background:", e);
+      }
+    }
+
+    function applyBgImage(url) {
+      const loginScreen = document.getElementById('login-screen');
+      if (loginScreen) {
+        loginScreen.style.backgroundImage = `url('${url}')`;
+      }
+      const bgInput = document.getElementById('input-bg-url');
+      if (bgInput) bgInput.value = url;
+    }
+
+    function setBgPreset(url) {
+      const bgInput = document.getElementById('input-bg-url');
+      if (bgInput) bgInput.value = url;
+      const fileInput = document.getElementById('input-bg-file');
+      if (fileInput) fileInput.value = '';
+    }
+
+    async function handleSaveBg(e) {
+      e.preventDefault();
+      const fileInput = document.getElementById('input-bg-file');
+      const bgUrlInput = document.getElementById('input-bg-url');
+      const btn = document.getElementById('btn-save-bg');
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memproses...';
+
+      if (fileInput && fileInput.files && fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = async function(evt) {
+          try {
+            const res = await callBackend('uploadBgImage', {
+              fileBase64: evt.target.result,
+              fileName: file.name
+            });
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-2"></i> Simpan & Terapkan Background';
+
+            if (res && res.success) {
+              const newUrl = res.bgUrl || evt.target.result;
+              applyBgImage(newUrl);
+              fileInput.value = '';
+              showAlert(res.message, 'success');
+            } else {
+              showAlert(res.message || 'Gagal mengunggah gambar background', 'error');
+            }
+          } catch (err) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-2"></i> Simpan & Terapkan Background';
+            handleError(err);
+          }
+        };
+
+        reader.readAsDataURL(file);
+      } 
+      else if (bgUrlInput && bgUrlInput.value.trim() !== "") {
+        const bgUrl = bgUrlInput.value.trim();
+        try {
+          const res = await callBackend('simpanSettings', { bgUrl });
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-2"></i> Simpan & Terapkan Background';
+
+          if (res && res.success) {
+            applyBgImage(bgUrl);
+            showAlert(res.message, 'success');
+          } else {
+            showAlert(res.message || 'Gagal menyimpan background', 'error');
+          }
+        } catch (err) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-2"></i> Simpan & Terapkan Background';
+          handleError(err);
+        }
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-2"></i> Simpan & Terapkan Background';
+        showAlert('Silakan pilih file gambar dari perangkat atau masukkan URL gambar!', 'error');
+      }
+    }
+
+    function switchTab(tabId) {
+      if (tabId === 'tab-admin' && (!loggedInUser || loggedInUser.role !== 'Admin')) {
+        showAlert('Akses Ditolak: Panel Admin khusus untuk Admin!', 'error');
+        tabId = 'tab-absensi';
+      }
+
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById(tabId).classList.remove('hidden');
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.className = "nav-btn px-3 py-1.5 text-xs font-medium rounded-lg text-indigo-100 hover:text-white transition-all";
+      });
+
+      const activeBtn = document.getElementById('btn-' + tabId);
+      if (activeBtn) {
+        activeBtn.className = "nav-btn px-3 py-1.5 text-xs font-medium rounded-lg bg-white text-indigo-800 shadow transition-all";
+      }
+
+      if (tabId === 'tab-admin') {
+        loadKaryawanData();
+      } else if (tabId === 'tab-rekap') {
+        loadRekapSummary();
+        loadRekapData();
+      }
+    }
+
+    function handleStatusChange() {
+      const selectedStatus = document.querySelector('input[name="status-hadir"]:checked').value;
+      const pdfSection = document.getElementById('section-pdf-upload');
+      if (selectedStatus === 'Sakit') {
+        pdfSection.classList.remove('hidden');
+      } else {
+        pdfSection.classList.add('hidden');
+      }
+    }
+
+    function handleAbsensiSubmit(e) {
+      e.preventDefault();
+      if (!loggedInUser) {
+        showAlert('Silakan login terlebih dahulu.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btn-submit-absen');
+      const status = document.querySelector('input[name="status-hadir"]:checked').value;
+      const catatan = document.getElementById('absen-catatan').value;
+      const pdfInput = document.getElementById('absen-pdf');
+
+      const payload = {
+        idKaryawan: loggedInUser.id,
+        namaKaryawan: loggedInUser.nama,
+        status: status,
+        catatan: catatan,
+        fileBase64: null,
+        fileName: null
+      };
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Memproses...';
+
+      if (status === 'Sakit') {
+        if (!pdfInput.files || pdfInput.files.length === 0) {
+          showAlert('Wajib memilih berkas PDF Surat Dokter!', 'error');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> Kirim Absensi';
+          return;
+        }
+
+        const file = pdfInput.files[0];
+        if (file.type !== 'application/pdf') {
+          showAlert('Berkas harus berformat .pdf!', 'error');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> Kirim Absensi';
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          payload.fileBase64 = evt.target.result;
+          payload.fileName = file.name;
+          sendAbsensiData(payload, btn);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        sendAbsensiData(payload, btn);
+      }
+    }
+
+    async function sendAbsensiData(payload, btn) {
+      try {
+        const res = await callBackend('simpanAbsensi', { payload });
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> Kirim Absensi';
+        if (res && res.success) {
+          showAlert(res.message, 'success');
+          document.getElementById('form-absensi').reset();
+          handleStatusChange();
+        } else {
+          showAlert(res.message || 'Gagal menyimpan absensi', 'error');
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> Kirim Absensi';
+        handleError(err);
+      }
+    }
+
+    async function handleTambahKaryawan(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-submit-admin');
+      const id = document.getElementById('admin-id').value;
+      const nama = document.getElementById('admin-nama').value;
+      const jabatan = document.getElementById('admin-jabatan').value;
+      const password = document.getElementById('admin-password').value;
+      const role = document.getElementById('admin-role').value;
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Menyimpan...';
+
+      try {
+        const res = await callBackend('tambahKaryawan', { id, nama, jabatan, password, role });
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-plus mr-2"></i> Simpan Pengguna';
+        if (res && res.success) {
+          showAlert(res.message, 'success');
+          document.getElementById('form-tambah-karyawan').reset();
+          loadKaryawanData();
+        } else {
+          showAlert(res.message || 'Gagal menyimpan pengguna', 'error');
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-plus mr-2"></i> Simpan Pengguna';
+        handleError(err);
+      }
+    }
+
+    async function loadKaryawanData() {
+      try {
+        const res = await callBackend('getDaftarKaryawan');
+        const list = res.data || res;
+        renderKaryawanOptions(list);
+      } catch (err) {
+        console.error("Gagal memuat data karyawan:", err);
+      }
+    }
+
+    function renderKaryawanOptions(list) {
+      const tbody = document.getElementById('table-karyawan-body');
+      tbody.innerHTML = '';
+
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400">Belum ada data pengguna.</td></tr>';
+        return;
+      }
+
+      list.forEach(k => {
+        let roleBadge = k.role === 'Admin'
+          ? `<span class="bg-indigo-100 text-indigo-800 font-semibold px-2 py-0.5 rounded">Admin</span>`
+          : `<span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Karyawan</span>`;
+
+        tbody.innerHTML += `
+          <tr class="border-b border-slate-100 hover:bg-slate-50">
+            <td class="p-3 font-semibold text-indigo-700">${k.id}</td>
+            <td class="p-3 font-medium text-slate-800">${k.nama}</td>
+            <td class="p-3 text-slate-600">${k.jabatan}</td>
+            <td class="p-3">${roleBadge}</td>
+          </tr>
+        `;
+      });
+    }
+
+    async function loadRekapSummary() {
+      const tbody = document.getElementById('table-summary-body');
+      if (!tbody) return;
+
+      try {
+        const res = await callBackend('getRekapPerKaryawan');
+        const list = res.data || res;
+        renderSummaryTable(list);
+      } catch (err) {
+        console.error("Gagal memuat rekap summary:", err);
+      }
+    }
+
+    function renderSummaryTable(list) {
+      const tbody = document.getElementById('table-summary-body');
+      tbody.innerHTML = '';
+
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400">Belum ada rangkuman statistik data.</td></tr>';
+        return;
+      }
+
+      let filteredList = list;
+      if (loggedInUser && loggedInUser.role !== 'Admin') {
+        filteredList = list.filter(item => item.id.toLowerCase() === loggedInUser.id.toLowerCase());
+      }
+
+      filteredList.forEach(s => {
+        tbody.innerHTML += `
+          <tr class="border-b border-slate-100 hover:bg-slate-50">
+            <td class="p-3 font-semibold text-indigo-700 font-mono">${s.id}</td>
+            <td class="p-3 font-bold text-slate-800">${s.nama}</td>
+            <td class="p-3 text-slate-600">${s.jabatan}</td>
+            <td class="p-3 text-center font-bold text-emerald-600 bg-emerald-50/50">${s.totalHadir}</td>
+            <td class="p-3 text-center font-semibold text-emerald-700">${s.tepatWaktu}</td>
+            <td class="p-3 text-center font-semibold text-amber-600 bg-amber-50/30">${s.terlambat}</td>
+            <td class="p-3 text-center font-semibold text-rose-600">${s.sakit}</td>
+            <td class="p-3 text-slate-500 font-mono text-[11px]">${s.terakhirAbsen}</td>
+          </tr>
+        `;
+      });
+    }
+
+    async function loadRekapData() {
+      const tbody = document.getElementById('table-rekap-body');
+      tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat rekap data...</td></tr>';
+
+      try {
+        const res = await callBackend('getRekapAbsensi');
+        const list = res.data || res;
+        renderRekapTable(list);
+      } catch (err) {
+        handleError(err);
+      }
+    }
+
+    function renderRekapTable(list) {
+      const tbody = document.getElementById('table-rekap-body');
+      tbody.innerHTML = '';
+
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400">Belum ada data absensi tercatat.</td></tr>';
+        return;
+      }
+
+      let filteredList = list;
+      if (loggedInUser && loggedInUser.role !== 'Admin') {
+        filteredList = list.filter(item => item.id.toLowerCase() === loggedInUser.id.toLowerCase());
+      }
+
+      if (filteredList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400">Belum ada riwayat absensi untuk akun Anda.</td></tr>';
+        return;
+      }
+
+      filteredList.forEach(r => {
+        let statusBadge = r.status === 'Hadir'
+          ? `<span class="bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded">Hadir</span>`
+          : `<span class="bg-rose-100 text-rose-800 font-semibold px-2 py-0.5 rounded">Sakit</span>`;
+
+        let waktuBadge = r.statusWaktu === 'Tepat Waktu'
+          ? `<span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[10px]">Tepat Waktu</span>`
+          : (r.statusWaktu === 'Terlambat'
+            ? `<span class="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded text-[10px]">Terlambat (≥ 08:15)</span>`
+            : `<span class="text-slate-400">${r.statusWaktu}</span>`);
+
+        let pdfLink = (r.linkPdf && r.linkPdf !== '-')
+          ? `<a href="${r.linkPdf}" target="_blank" class="text-indigo-600 hover:text-indigo-800 font-semibold underline inline-flex items-center"><i class="fa-solid fa-file-pdf mr-1"></i> Lihat PDF</a>`
+          : `<span class="text-slate-400">-</span>`;
+
+        tbody.innerHTML += `
+          <tr class="border-b border-slate-100 hover:bg-slate-50">
+            <td class="p-3 text-slate-500 font-mono text-[11px]">${r.timestamp}</td>
+            <td class="p-3 font-semibold text-slate-800">${r.nama} <span class="text-slate-400 font-normal">(${r.id})</span></td>
+            <td class="p-3 text-slate-600">${r.hari}, ${r.tanggal}</td>
+            <td class="p-3 font-mono text-slate-700">${r.jam}</td>
+            <td class="p-3">${statusBadge}</td>
+            <td class="p-3">${waktuBadge}</td>
+            <td class="p-3 text-slate-600 max-w-xs truncate" title="${r.catatan}">${r.catatan}</td>
+            <td class="p-3">${pdfLink}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function showAlert(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      const isSuccess = type === 'success';
+      const bgColor = isSuccess ? 'bg-emerald-600' : 'bg-rose-600';
+      const icon = isSuccess ? 'fa-circle-check' : 'fa-circle-xmark';
+
+      toast.className = `${bgColor} text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-xl flex items-center space-x-2 transition-all transform duration-300 translate-y-2 opacity-0 pointer-events-auto`;
+      toast.innerHTML = `<i class="fa-solid ${icon} text-base"></i><span>${msg}</span>`;
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 50);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    function handleError(err) {
+      showAlert("Terjadi kesalahan: " + (err.message || err.toString()), "error");
+    }
+  </script>
+</body>
+</html>
